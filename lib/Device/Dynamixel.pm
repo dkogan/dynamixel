@@ -369,10 +369,6 @@ sub moveMotorTo_deg
 __END__
 
 
-=head1 AUTHOR
-
-Dima Kogan, C<< <dkogan at cds.caltech.edu> >>
-
 =head1 BUGS
 
 There are several aspects of this module that are unideal and may change in the
@@ -386,41 +382,13 @@ Another major issue is the baud rate of the serial communication. The motors
 default to 1M baud. This is unsupported by the stock POSIX module in perl5, so
 the serial port must be configured external to this module.
 
-Please report any bugs or feature requests to C<bug-device-dynamixel at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Device-Dynamixel>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Device::Dynamixel
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Device-Dynamixel>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Device-Dynamixel>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Device-Dynamixel>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Device-Dynamixel/>
-
-=back
-
 =head1 REPOSITORY
+
 L<https://github.com/dkogan/dynamixel>
+
+=head1 AUTHOR
+
+Dima Kogan, C<< <dkogan at cds.caltech.edu> >>
 
 =head1 LICENSE AND COPYRIGHT
 
