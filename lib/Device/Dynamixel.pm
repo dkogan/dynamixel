@@ -419,6 +419,8 @@ L<http://search.cpan.org/dist/Device-Dynamixel/>
 
 =back
 
+=head1 REPOSITORY
+L<https://github.com/dkogan/dynamixel>
 
 =head1 LICENSE AND COPYRIGHT
 
