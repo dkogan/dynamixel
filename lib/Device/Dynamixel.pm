@@ -164,7 +164,7 @@ sub new
 }
 
 # Constructs a binary dynamixel packet with a given command
-sub makeInstructionPacket
+sub _makeInstructionPacket
 {
   my ($addr, $instruction, $parameters) = @_;
   my $body = pack( 'C3C' . @$parameters,
@@ -176,7 +176,7 @@ sub makeInstructionPacket
 }
 
 # parses a given binary string as a dynamixel status packet
-sub parseStatusPacket
+sub _parseStatusPacket
 {
   my $str = shift;
 
@@ -216,7 +216,7 @@ sub pingMotor
 {
   my $this = shift;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{PING}, []);
+  print $pipe _makeInstructionPacket($addr, $instructions{PING}, []);
   return pullMotorReply($pipe);
 }
 
@@ -230,7 +230,7 @@ sub writeMotor
 {
   my ($this, $where, $what) = @_;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{WRITE_DATA}, [$where, @$what]);
+  print $pipe _makeInstructionPacket($addr, $instructions{WRITE_DATA}, [$where, @$what]);
   return pullMotorReply($pipe);
 }
 
@@ -244,7 +244,7 @@ sub readMotor
 {
   my ($this, $where, $howmany) = @_;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{READ_DATA}, [$where, $howmany]);
+  print $pipe _makeInstructionPacket($addr, $instructions{READ_DATA}, [$where, $howmany]);
   return pullMotorReply($pipe);
 }
 
@@ -259,7 +259,7 @@ sub writeMotor_queue
 {
   my ($this, $where, $what) = @_;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{REG_WRITE}, [$where, @$what]);
+  print $pipe _makeInstructionPacket($addr, $instructions{REG_WRITE}, [$where, @$what]);
   return pullMotorReply($pipe);
 }
 
@@ -273,7 +273,7 @@ sub triggerMotorQueue
 {
   my $this = shift;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{ACTION}, []);
+  print $pipe _makeInstructionPacket($addr, $instructions{ACTION}, []);
   return pullMotorReply($pipe);
 }
 
@@ -287,7 +287,7 @@ sub resetMotor
 {
   my $this = shift;
   my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe makeInstructionPacket($addr, $instructions{RESET}, []);
+  print $pipe _makeInstructionPacket($addr, $instructions{RESET}, []);
   return pullMotorReply($pipe);
 }
 
@@ -311,7 +311,7 @@ sub syncWriteMotor
     die "syncWriteMotor: size mismatch!";
   }
 
-  print $pipe makeInstructionPacket($BROADCAST_ADDR, $instructions{SYNC_WRITE}, \@parms);
+  print $pipe _makeInstructionPacket($BROADCAST_ADDR, $instructions{SYNC_WRITE}, \@parms);
   return pullMotorReply($pipe);
 }
 
@@ -341,7 +341,7 @@ sub pullMotorReply
     $packet .= $bytes;
   }
 
-  return parseStatusPacket($packet);
+  return _parseStatusPacket($packet);
 }
 
 
