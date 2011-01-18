@@ -12,7 +12,8 @@ WriteMakefile(
       : ()),
     PL_FILES            => {},
     PREREQ_PM => {
-        'Test::More' => 0,
+        'Test::More'  => 0,
+	'Const::Fast' => 0
     },
     MIN_PERL_VERSION => 5.10,
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
