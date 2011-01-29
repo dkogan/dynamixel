@@ -16,7 +16,7 @@ WriteMakefile(
         'Test::More'  => 0,
 	'Const::Fast' => 0
     },
-    MIN_PERL_VERSION => 5.10,
+    MIN_PERL_VERSION => '5.10',
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Device-Dynamixel-*' },
 );
