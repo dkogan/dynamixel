@@ -130,7 +130,7 @@ const our %addresses =>
    Punch_L                   => 48,
    Punch_H                   => 49);
 
-const my %baudrateValues =>
+const our %baudrateValues =>
   (1000000 => 0x01,
    500000  => 0x03,
    400000  => 0x04,
