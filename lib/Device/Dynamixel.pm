@@ -25,10 +25,11 @@ our $VERSION = '0.024';
 
  open my $pipe, '+<', '/dev/ttyUSB0' or die "Couldn't open pipe for reading and writing";
 
- my $dynamixel = Dynamixel->new($pipe, 5);
+ my $motorID   = 5;
+ my $dynamixel = Dynamixel->new($pipe);
  while(<>)
  {
-   $dynamixel->moveMotorTo_deg($_);
+   $dynamixel->moveMotorTo_deg($motorID, $_);
  }
 
 =head1 DESCRIPTION
@@ -38,23 +39,28 @@ Dynamixel AX-12 motors have been tested to work with this module, but the others
 should work also.
 
 A daisy-chained series string of motors is connected to the host via a simple
-serial connection. Each motor in the series has an 8-bit address. This address
-is present in every command to address specific motors. The current
-implementation of this module uses an object per motor, NOT an object per string
-of motors. This may change in the future.
+serial connection. Each motor in the series has an 8-bit ID. This ID is present
+in every command to address specific motors. One Device::Dynamixel object should
+be created for a single string of motors connected to one motor port.
 
 These motors communicate using a particular protocol, which is implemented by
-this module. Commands are sent to the motor. A STATUS reply is sent back after
+this module. Commands are sent to the motor. A B<STATUS> reply is sent back after
 each command. This module handles construction and parsing of Dynamixel packets,
 as well as the sending and receiving data when needed.
 
 =head2 VARIABLES
 
-The dynamixel broadcast address is accessible as
-$Device::Dynamixel::BROADCAST_ADDR. The addresses of Dynamixel control registers
-are available as %Device::Dynamixel::addresses. This allows the application to
-send arbitrary commands to the motor. For example, to set the moving speed of
-the motor to 100%:
+The communicate with all motor at once, send commands to the broadcast ID:
+
+ $Device::Dynamixel::BROADCAST_ID.
+
+The addresses of Dynamixel control registers
+are available as
+
+ %Device::Dynamixel::addresses.
+
+This allows the application to send arbitrary commands to the motor. For
+example, to set the moving speed of the motor to 100%:
 
  $dynamixel->writeMotor($Device::Dynamixel::addresses{Moving_Speed_L},
                         [0xFF, 0x03]); # 0x3FF is the top speed for the
@@ -63,10 +69,8 @@ the motor to 100%:
 =cut
 
 
-
-
 # Constants defined in the dynamixel docs
-const our $BROADCAST_ADDR => 0xFE;
+const our $BROADCAST_ID => 0xFE;
 const my %instructions =>
   (PING       => 0x01,
    READ_DATA  => 0x02,
@@ -146,7 +150,7 @@ const my $motorRange_deg    => 300;
 
 =head1 CONSTRUCTOR
 
-=head2 new(PIPE, MOTORADDRESS)
+=head2 new(PIPE)
 
 Creates a new object to talk to a Dynamixel motor. The file handle has to be opened and set-up
 prior to constructing the object.
@@ -154,10 +158,9 @@ prior to constructing the object.
 =cut
 sub new
 {
-  my ($classname, $pipe, $motoraddr) = @_;
+  my ($classname, $pipe) = @_;
 
-  my $this = {pipe => $pipe,
-              addr => $motoraddr};
+  my $this = {pipe => $pipe};
   bless($this, $classname);
 
   return $this;
@@ -167,7 +170,7 @@ sub new
 sub _makeInstructionPacket
 {
   my ($motorID, $instruction, $parameters) = @_;
-  my $body = pack( 'C3C' . @$parameters,
+  my $body = pack( 'C3C' . scalar @$parameters,
                    $motorID, 2 + @$parameters, $instruction,
                    @$parameters );
 
@@ -214,10 +217,12 @@ Sends a ping. STATUS reply is returned
 
 sub pingMotor
 {
-  my $this = shift;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this      = shift;
+  my ($motorID) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{PING}, []);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 writeMotor(startingAddress, data)
@@ -228,10 +233,12 @@ Sends a command to the motor. STATUS reply is returned.
 
 sub writeMotor
 {
-  my ($this, $where, $what) = @_;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this                     = shift;
+  my ($motorID, $where, $what) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{WRITE_DATA}, [$where, @$what]);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 readMotor(startingAddress, howManyBytes)
@@ -242,10 +249,12 @@ Reads data from the motor. STATUS reply is returned.
 
 sub readMotor
 {
-  my ($this, $where, $howmany) = @_;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this                        = shift;
+  my ($motorID, $where, $howmany) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{READ_DATA}, [$where, $howmany]);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 writeMotor_queue(startingAddress, data)
@@ -257,10 +266,12 @@ not actually execute the command until triggered with triggerMotorQueue( )
 
 sub writeMotor_queue
 {
-  my ($this, $where, $what) = @_;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this                     = shift;
+  my ($motorID, $where, $what) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{REG_WRITE}, [$where, @$what]);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 triggerMotorQueue( )
@@ -271,10 +282,12 @@ Sends a trigger for the queued commands. STATUS reply is returned.
 
 sub triggerMotorQueue
 {
-  my $this = shift;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this      = shift;
+  my ($motorID) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{ACTION}, []);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 resetMotor( )
@@ -285,10 +298,12 @@ Sends a motor reset. STATUS reply is returned.
 
 sub resetMotor
 {
-  my $this = shift;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this      = shift;
+  my ($motorID) = @_;
+
+  my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{RESET}, []);
-  return pullMotorReply($pipe);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 syncWriteMotor(startingAddress, data)
@@ -299,8 +314,8 @@ Sends a synced-write command to the motor. STATUS reply is returned.
 
 sub syncWriteMotor
 {
-  my ($this, $writes, $where) = @_;
-  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  my $this                       = shift;
+  my ($motorID, $writes, $where) = @_;
 
   my @parms = map { ($_->{motorID}, @{$_->{what}}) } @$writes;
   my $lenchunk = scalar @{$writes->[0]{what}};
@@ -311,8 +326,9 @@ sub syncWriteMotor
     die "syncWriteMotor: size mismatch!";
   }
 
-  print $pipe _makeInstructionPacket($BROADCAST_ADDR, $instructions{SYNC_WRITE}, \@parms);
-  return pullMotorReply($pipe);
+  my $pipe = $this->{pipe};
+  print $pipe _makeInstructionPacket($BROADCAST_ID, $instructions{SYNC_WRITE}, \@parms);
+  return pullMotorReply($this->{pipe});
 }
 
 =head2 pullMotorReply( )
@@ -354,13 +370,13 @@ particular position
 
 sub moveMotorTo_deg
 {
-  my $this         = shift;
-  my $position_deg = shift;
+  my $this                     = shift;
+  my ($motorID, $position_deg) = @_;
 
   my $position = int( 0.5 + ($position_deg * $motorRange_coords/$motorRange_deg + 0x1ff) );
   $position    = 0                    if $position <  0;
   $position    = $motorRange_coords-1 if $position >= $motorRange_coords;
-  return $this->writeMotor($addresses{Goal_Position_L}, [unpack('C2', pack('v', $position))] );
+  return $this->writeMotor($motorID, $addresses{Goal_Position_L}, [unpack('C2', pack('v', $position))] );
 }
 
 1;
@@ -371,16 +387,9 @@ __END__
 
 =head1 BUGS
 
-There are several aspects of this module that are unideal and may change in the
-future. The current implementation ties an instance of a Device::Dynamixel
-object to a particular motor, NOT to a string of motors. This means that talking
-to multiple motors requires multiple instances. This imposes a requirement that
-only one motor can be controlled at any given time. Further, multi-motor
-commands like syncWriteMotor( ) become essentially useless.
-
-Another major issue is the baud rate of the serial communication. The motors
-default to 1M baud. This is unsupported by the stock POSIX module in perl5, so
-the serial port must be configured external to this module.
+An issue is the baud rate of the serial communication. The motors default to 1M
+baud. This is unsupported by the stock POSIX module in perl5, so the serial port
+must be configured external to this module.
 
 =head1 REPOSITORY
 
