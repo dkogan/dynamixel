@@ -166,9 +166,9 @@ sub new
 # Constructs a binary dynamixel packet with a given command
 sub _makeInstructionPacket
 {
-  my ($addr, $instruction, $parameters) = @_;
+  my ($motorID, $instruction, $parameters) = @_;
   my $body = pack( 'C3C' . @$parameters,
-                   $addr, 2 + @$parameters, $instruction,
+                   $motorID, 2 + @$parameters, $instruction,
                    @$parameters );
 
   my $checksum = ( ~sum(unpack('C*', $body)) & 0xFF );
@@ -184,7 +184,7 @@ sub _parseStatusPacket
 
   return if($key != 0xFFFF);
 
-  my ($addr, $length, $error) = unpack('C3', substr($str, 0, 3, '')) or return;
+  my ($motorID, $length, $error) = unpack('C3', substr($str, 0, 3, '')) or return;
   my $numParameters = $length - 2;
   return if($numParameters < 0);
 
@@ -196,10 +196,10 @@ sub _parseStatusPacket
     $sumParameters = sum(@parameters);
   }
   my $checksum = unpack('C1', substr($str, 0, 1, '')) // return;
-  my $checksumShouldbe = ~($addr + $length + $error + $sumParameters) & 0xFF;
+  my $checksumShouldbe = ~($motorID + $length + $error + $sumParameters) & 0xFF;
   return if($checksum != $checksumShouldbe);
 
-  return {from   => $addr,
+  return {from   => $motorID,
           error  => $error,
           params => \@parameters};
 }
@@ -215,8 +215,8 @@ Sends a ping. STATUS reply is returned
 sub pingMotor
 {
   my $this = shift;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{PING}, []);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{PING}, []);
   return pullMotorReply($pipe);
 }
 
@@ -229,8 +229,8 @@ Sends a command to the motor. STATUS reply is returned.
 sub writeMotor
 {
   my ($this, $where, $what) = @_;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{WRITE_DATA}, [$where, @$what]);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{WRITE_DATA}, [$where, @$what]);
   return pullMotorReply($pipe);
 }
 
@@ -243,8 +243,8 @@ Reads data from the motor. STATUS reply is returned.
 sub readMotor
 {
   my ($this, $where, $howmany) = @_;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{READ_DATA}, [$where, $howmany]);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{READ_DATA}, [$where, $howmany]);
   return pullMotorReply($pipe);
 }
 
@@ -258,8 +258,8 @@ not actually execute the command until triggered with triggerMotorQueue( )
 sub writeMotor_queue
 {
   my ($this, $where, $what) = @_;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{REG_WRITE}, [$where, @$what]);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{REG_WRITE}, [$where, @$what]);
   return pullMotorReply($pipe);
 }
 
@@ -272,8 +272,8 @@ Sends a trigger for the queued commands. STATUS reply is returned.
 sub triggerMotorQueue
 {
   my $this = shift;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{ACTION}, []);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{ACTION}, []);
   return pullMotorReply($pipe);
 }
 
@@ -286,8 +286,8 @@ Sends a motor reset. STATUS reply is returned.
 sub resetMotor
 {
   my $this = shift;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
-  print $pipe _makeInstructionPacket($addr, $instructions{RESET}, []);
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
+  print $pipe _makeInstructionPacket($motorID, $instructions{RESET}, []);
   return pullMotorReply($pipe);
 }
 
@@ -300,9 +300,9 @@ Sends a synced-write command to the motor. STATUS reply is returned.
 sub syncWriteMotor
 {
   my ($this, $writes, $where) = @_;
-  my ($pipe, $addr) = @{$this}{qw(pipe addr)};
+  my ($pipe, $motorID) = @{$this}{qw(pipe motorID)};
 
-  my @parms = map { ($_->{addr}, @{$_->{what}}) } @$writes;
+  my @parms = map { ($_->{motorID}, @{$_->{what}}) } @$writes;
   my $lenchunk = scalar @{$writes->[0]{what}};
   @parms = ($where, $lenchunk, @parms);
 
