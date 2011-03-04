@@ -119,6 +119,7 @@ with a value
  $Device::Dynamixel::baudrateValues{$baud}
 
 The available baud rates are
+
  1000000
  500000
  400000
