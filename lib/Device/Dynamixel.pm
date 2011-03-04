@@ -178,35 +178,6 @@ sub _makeInstructionPacket
   return pack('CC', 0xFF, 0xFF) . $body . chr $checksum;
 }
 
-# parses a given binary string as a dynamixel status packet
-sub _parseStatusPacket
-{
-  my $str = shift;
-
-  my ($key) = unpack('n', substr($str, 0, 2, '')) or return;
-
-  return if($key != 0xFFFF);
-
-  my ($motorID, $length, $error) = unpack('C3', substr($str, 0, 3, '')) or return;
-  my $numParameters = $length - 2;
-  return if($numParameters < 0);
-
-  my @parameters = ();
-  my $sumParameters = 0;
-  if($numParameters)
-  {
-    @parameters = unpack("C$numParameters", substr($str, 0, $numParameters, '')) or return;
-    $sumParameters = sum(@parameters);
-  }
-  my $checksum = unpack('C1', substr($str, 0, 1, '')) // return;
-  my $checksumShouldbe = ~($motorID + $length + $error + $sumParameters) & 0xFF;
-  return if($checksum != $checksumShouldbe);
-
-  return {from   => $motorID,
-          error  => $error,
-          params => \@parameters};
-}
-
 =head1 METHODS
 
 =head2 pingMotor( )
@@ -351,6 +322,36 @@ sub _pullMotorReply
   }
 
   return _parseStatusPacket($packet);
+
+
+  # parses a given binary string as a dynamixel status packet
+  sub _parseStatusPacket
+  {
+    my $str = shift;
+
+    my ($key) = unpack('n', substr($str, 0, 2, '')) or return;
+
+    return if($key != 0xFFFF);
+
+    my ($motorID, $length, $error) = unpack('C3', substr($str, 0, 3, '')) or return;
+    my $numParameters = $length - 2;
+    return if($numParameters < 0);
+
+    my @parameters = ();
+    my $sumParameters = 0;
+    if ($numParameters)
+    {
+      @parameters = unpack("C$numParameters", substr($str, 0, $numParameters, '')) or return;
+      $sumParameters = sum(@parameters);
+    }
+    my $checksum = unpack('C1', substr($str, 0, 1, '')) // return;
+    my $checksumShouldbe = ~($motorID + $length + $error + $sumParameters) & 0xFF;
+    return if($checksum != $checksumShouldbe);
+
+    return {from   => $motorID,
+            error  => $error,
+            params => \@parameters};
+  }
 }
 
 
