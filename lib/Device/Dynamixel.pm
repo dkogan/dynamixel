@@ -12,7 +12,7 @@ Device::Dynamixel - Simple control of Robotis Dynamixel servo motors
 
 =cut
 
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 
 
 =head1 SYNOPSIS
