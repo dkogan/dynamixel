@@ -10,10 +10,6 @@ use Const::Fast;
 
 Device::Dynamixel - Simple control of Robotis Dynamixel servo motors
 
-=head1 VERSION
-
-Version 0.024
-
 =cut
 
 our $VERSION = '0.024';
@@ -24,13 +20,20 @@ our $VERSION = '0.024';
  use Device::Dynamixel;
 
  open my $pipe, '+<', '/dev/ttyUSB0' or die "Couldn't open pipe for reading and writing";
+ my $motorbus = Device::Dynamixel->new($pipe);
 
- my $motorID   = 5;
- my $dynamixel = Dynamixel->new($pipe);
- while(<>)
- {
-   $dynamixel->moveMotorTo_deg($motorID, $_);
- }
+ # set motion speed of ALL motors to 200
+ $motorbus->writeMotor($Device::Dynamixel::BROADCAST_ID,
+                       $Device::Dynamixel::addresses{Moving_Speed_L}, [200, 0]);
+
+ # move motor 5 to 10 degrees off-center
+ $motorbus->moveMotorTo_deg(5, 10);
+
+ # read the position of motor 5
+ my $status = $motorbus->readMotor(5,
+                                   $Device::Dynamixel::addresses{Present_Position_L}, 2);
+ my @params = @{$status->{params}};
+ my $position = $params[1]*255 + $params[0];
 
 =head1 DESCRIPTION
 
@@ -44,27 +47,102 @@ in every command to address specific motors. One Device::Dynamixel object should
 be created for a single string of motors connected to one motor port.
 
 These motors communicate using a particular protocol, which is implemented by
-this module. Commands are sent to the motor. A B<STATUS> reply is sent back after
+this module. Commands are sent to the motor. A status reply is sent back after
 each command. This module handles construction and parsing of Dynamixel packets,
 as well as the sending and receiving data when needed.
 
-=head2 VARIABLES
+=head2 EXPORTED VARIABLES
 
-The communicate with all motor at once, send commands to the broadcast ID:
+To communicate with all motor at once, send commands to the broadcast ID:
 
- $Device::Dynamixel::BROADCAST_ID.
+ $Device::Dynamixel::BROADCAST_ID
 
-The addresses of Dynamixel control registers
-are available as
+All the motor control addresses described in the Dynamixel docs are defined in this module,
+available as
 
- %Device::Dynamixel::addresses.
+ $Device::Dynamixel::addresses{$value}
 
-This allows the application to send arbitrary commands to the motor. For
-example, to set the moving speed of the motor to 100%:
+Defined values are:
 
- $dynamixel->writeMotor($Device::Dynamixel::addresses{Moving_Speed_L},
-                        [0xFF, 0x03]); # 0x3FF is the top speed for the
-                                       # Dynamixel AX-12
+ ModelNumber_L
+ ModelNumber_H
+ Version_of_Firmware
+ ID
+ Baud_Rate
+ Return_Delay_Time
+ CW_Angle_Limit_L
+ CW_Angle_Limit_H
+ CCW_Angle_Limit_L
+ CCW_Angle_Limit_H
+ Highest_Limit_Temperature
+ Lowest_Limit_Voltage
+ Highest_Limit_Voltage
+ Max_Torque_L
+ Max_Torque_H
+ Status_Return_Level
+ Alarm_LED
+ Alarm_Shutdown
+ Down_Calibration_L
+ Down_Calibration_H
+ Up_Calibration_L
+ Up_Calibration_H
+ Torque_Enable
+ LED
+ CW_Compliance_Margin
+ CCW_Compliance_Margin
+ CW_Compliance_Slope
+ CCW_Compliance_Slope
+ Goal_Position_L
+ Goal_Position_H
+ Moving_Speed_L
+ Moving_Speed_H
+ Torque_Limit_L
+ Torque_Limit_H
+ Present_Position_L
+ Present_Position_H
+ Present_Speed_L
+ Present_Speed_H
+ Present_Load_L
+ Present_Load_H
+ Present_Voltage
+ Present_Temperature
+ Registered_Instruction
+ Reserved
+ Moving
+ Lock
+ Punch_L
+ Punch_H
+
+To change the baud rate of the motor, the B<Baud_Rate> address must be written
+with a value
+
+ $Device::Dynamixel::baudrateValues{$baud}
+
+The available baud rates are
+ 1000000
+ 500000
+ 400000
+ 250000
+ 200000
+ 115200
+ 57600
+ 19200
+ 9600
+
+Note that the baud rate generally is cached from the last time the motor was
+used, defaulting to 1Mbaud at the start
+
+=head2 STATUS RETURN
+
+Most of the functions return a status hash that describes the status of the motors and/or returns
+queried data. This hash is defined as
+
+ { from   => $motorID,
+   error  => $error,
+   params => \@parameters }
+
+If no valid reply was received, undef is returned. Look at the Dynamixel hardware documentation for
+the exact meaning of each hash element.
 
 =cut
 
@@ -150,7 +228,7 @@ const my $motorRange_deg    => 300;
 
 =head1 CONSTRUCTOR
 
-=head2 new(PIPE)
+=head2 new( PIPE )
 
 Creates a new object to talk to a Dynamixel motor. The file handle has to be opened and set-up
 prior to constructing the object.
@@ -180,9 +258,9 @@ sub _makeInstructionPacket
 
 =head1 METHODS
 
-=head2 pingMotor( )
+=head2 pingMotor( motorID )
 
-Sends a ping. STATUS reply is returned
+Sends a ping. Status reply is returned
 
 =cut
 
@@ -196,9 +274,9 @@ sub pingMotor
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 writeMotor(startingAddress, data)
+=head2 writeMotor( motorID, startingAddress, data )
 
-Sends a command to the motor. STATUS reply is returned.
+Sends a command to the motor. Status reply is returned.
 
 =cut
 
@@ -212,9 +290,9 @@ sub writeMotor
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 readMotor(startingAddress, howManyBytes)
+=head2 readMotor( motorID, startingAddress, howManyBytes )
 
-Reads data from the motor. STATUS reply is returned.
+Reads data from the motor. Status reply is returned.
 
 =cut
 
@@ -228,7 +306,7 @@ sub readMotor
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 writeMotor_queue(startingAddress, data)
+=head2 writeMotor_queue( motorID, startingAddress, data )
 
 Queues a particular command to the motor and returns the received reply. Does
 not actually execute the command until triggered with triggerMotorQueue( )
@@ -245,9 +323,9 @@ sub writeMotor_queue
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 triggerMotorQueue( )
+=head2 triggerMotorQueue( motorID )
 
-Sends a trigger for the queued commands. STATUS reply is returned.
+Sends a trigger for the queued commands. Status reply is returned.
 
 =cut
 
@@ -261,9 +339,9 @@ sub triggerMotorQueue
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 resetMotor( )
+=head2 resetMotor( motorID )
 
-Sends a motor reset. STATUS reply is returned.
+Sends a motor reset. Status reply is returned.
 
 =cut
 
@@ -277,9 +355,9 @@ sub resetMotor
   return _pullMotorReply($this->{pipe});
 }
 
-=head2 syncWriteMotor(startingAddress, data)
+=head2 syncWriteMotor( motorID, startingAddress, data )
 
-Sends a synced-write command to the motor. STATUS reply is returned.
+Sends a synced-write command to the motor. Status reply is returned.
 
 =cut
 
@@ -355,7 +433,7 @@ sub _pullMotorReply
 }
 
 
-=head2 moveMotorTo_deg(position_degrees)
+=head2 moveMotorTo_deg( motorID, position_degrees )
 
 Convenience function that uses the lower-level routines to move a motor to a
 particular position
@@ -383,7 +461,7 @@ __END__
 
 An issue is the baud rate of the serial communication. The motors default to 1M
 baud. This is unsupported by the stock POSIX module in perl5, so the serial port
-must be configured external to this module.
+must be configured externally, prior to using to this module.
 
 =head1 REPOSITORY
 
