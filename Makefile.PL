@@ -29,7 +29,7 @@ my $POD_header = <<EOF;
 This is a simple driver for control of Robotis Dynamixel servo
 motors. This repository stores the history for the Device::Dynamixel
 module on CPAN. Install the module via CPAN. CPAN page at
-http://search.cpan.org/~dkogan/Device-Dynamixel/lib/Device/Dynamixel.pm
+L<http://search.cpan.org/~dkogan/Device-Dynamixel/lib/Device/Dynamixel.pm>
 
 =cut
 
