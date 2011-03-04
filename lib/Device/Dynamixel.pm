@@ -222,7 +222,7 @@ sub pingMotor
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{PING}, []);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 writeMotor(startingAddress, data)
@@ -238,7 +238,7 @@ sub writeMotor
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{WRITE_DATA}, [$where, @$what]);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 readMotor(startingAddress, howManyBytes)
@@ -254,7 +254,7 @@ sub readMotor
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{READ_DATA}, [$where, $howmany]);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 writeMotor_queue(startingAddress, data)
@@ -271,7 +271,7 @@ sub writeMotor_queue
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{REG_WRITE}, [$where, @$what]);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 triggerMotorQueue( )
@@ -287,7 +287,7 @@ sub triggerMotorQueue
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{ACTION}, []);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 resetMotor( )
@@ -303,7 +303,7 @@ sub resetMotor
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($motorID, $instructions{RESET}, []);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
 =head2 syncWriteMotor(startingAddress, data)
@@ -328,17 +328,10 @@ sub syncWriteMotor
 
   my $pipe = $this->{pipe};
   print $pipe _makeInstructionPacket($BROADCAST_ID, $instructions{SYNC_WRITE}, \@parms);
-  return pullMotorReply($this->{pipe});
+  return _pullMotorReply($this->{pipe});
 }
 
-=head2 pullMotorReply( )
-
-Performs a blocking read on the input pipe, and returns a parsed packet when
-it is received.
-
-=cut
-
-sub pullMotorReply
+sub _pullMotorReply
 {
   my $pipe = shift;
 
