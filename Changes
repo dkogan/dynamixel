@@ -1,5 +1,8 @@
 Revision history for Device-Dynamixel
 
+0.027   2011/04/05
+        Minor makefile update
+
 0.026   2011/04/05
         Made class more easily subclassable
 
