@@ -239,9 +239,18 @@ sub new
 {
   my ($classname, $pipe) = @_;
 
-  my $this = {pipe => $pipe};
+  my $this = {};
   bless($this, $classname);
 
+  return $this->_init($pipe);
+}
+
+sub _init
+{
+  my $this = shift;
+  my $pipe = shift;
+
+  $this->{pipe} = $pipe;
   return $this;
 }
 
