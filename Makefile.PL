@@ -3,6 +3,19 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+
+sub MY::libscan
+{
+    package MY;
+
+    my ($self, $file) = @_;
+
+    # Don't install the README.pod or any .pl file
+    return undef if $file =~ /\.pl$|^README.pod/;
+
+    return $self->SUPER::libscan ($file);
+}
+
 WriteMakefile(
     NAME                => 'Device::Dynamixel',
     AUTHOR              => q{Dima Kogan <dkogan@cpan.org>},
